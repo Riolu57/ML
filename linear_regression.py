@@ -117,7 +117,7 @@ def main():
     df_length = 100000
     dataset = read_data(df_length)
     train = dataset[:50000].reset_index(drop = True)
-    test = dataset[:50000].reset_index(drop = True)
+    test = dataset[50000:].reset_index(drop = True)
     
     # splitting data based on horizon
     horizon = 5
@@ -133,7 +133,8 @@ def main():
     
     # results
     print(mean_squared_error(train_y[:time_prediction], y_pred))
-    plot_trajectories(y_pred, train_y[:time_prediction])
+    plot_trajectories(np.insert(y_pred, 0, test_x[0], axis = 0), 
+                      np.insert(train_y[:time_prediction], 0, test_x[0], axis = 0))
 
 
 if __name__ == "__main__":
