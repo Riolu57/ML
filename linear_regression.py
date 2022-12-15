@@ -100,8 +100,8 @@ def splitxy(data, timestep=100):
     data_y = []
 
     for i in range(len(data) - timestep - 1):
-        x = data.loc[i:i + timestep - 1]
-        y = data.loc[i + timestep]
+        x = data.loc[i:i + timestep]
+        y = data.loc[i + timestep + 1]
         data_x.append(x.reset_index(drop=True))
         data_y.append(y.reset_index(drop=True))
 
