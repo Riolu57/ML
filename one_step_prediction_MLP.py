@@ -1,34 +1,12 @@
 # packages
 import numpy as np
-import tensorflow as tf
 from tensorflow.keras import layers
+import tensorflow as tf
 import pandas as pd
 import plot_utils
 
 
 class Data:
-    def __init__(self, train_perc, lookback):
-        self.train_perc = train_perc
-        self.lookback = lookback
-
-        self.data = self.read_data()
-        self.train_data, self.test_data = self.train_test_split()
-        self.train_X, self.train_Y = self.timeseries_conversion(self.train_data)
-        self.test_X, self.test_Y = self.timeseries_conversion(self.test_data)
-
-    def read_data(self, path='TBP_dataset.csv'):
-        df = pd.read_csv(path)
-        data = df[['r1_x', 'r1_y', 'v1_x', 'v1_y', 'r2_x', 'r2_y', 'v2_x', 'v2_y', 'r3_x', 'r3_y', 'v3_x',
-                   'v3_y']].values.tolist()
-        return data[0:1000]
-
-    def train_test_split(self):
-        train_size = int(len(self.data) * self.train_perc)
-
-        train_data, test_data = self.data[0:train_size], self.data[train_size:(len(self.data) + 1)]
-
-        return train_data, test_data
-
     def timeseries_conversion(self, arr):
         import copy
         dataX, dataY = [], []
@@ -42,14 +20,9 @@ class Data:
 
 
 class MLP:
-    def __init__(self, train_X, train_Y, test_X, test_Y, loss='mean_squared_error',
+    def __init__(self, train_X, train_Y, test_X, test_Y, layer_sizes, loss='mean_squared_error',
                  optimizer='adam', validation_split=0.2, epochs=10000, batch_size=1,
                  patience=5, lookback=5, plot=True):
-        self.train_X = train_X
-        self.train_Y = train_Y
-        self.test_X = test_X
-        self.test_Y = test_Y
-
         self.loss = loss
         self.optimizer = optimizer
         self.validation_split = validation_split
@@ -58,14 +31,21 @@ class MLP:
         self.patience = patience
         self.lookback = lookback
 
-        self.plot = plot
-        self.model = self.train_model()
+        self.train_X = self.adjust_data(train_X)
+        self.train_Y = train_Y
+        self.test_X = self.adjust_data(test_X)
+        self.test_Y = test_Y
 
-    def train_model(self):
+        self.plot = plot
+        self.model = self.train_model(layer_sizes)
+
+    def train_model(self, layer_sizes):
         callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=self.patience)
         model = tf.keras.Sequential()
-        model.add(layers.Dense(60))
-        model.add(layers.Dense(120))
+
+        for size in layer_sizes:
+            model.add(layers.Dense(size))
+
         model.add(layers.Dense(12))
         model.compile(loss=self.loss, optimizer=self.optimizer)
 
@@ -101,6 +81,14 @@ class MLP:
 
         if self.plot:
             plot_utils.plot_predictions(preds, self.test_Y[0:horizon], horizon)
+
+    def adjust_data(self, data):
+        first = np.reshape(data[0], (1, self.lookback*12))
+
+        for i in range(1, data.shape[0]):
+            first = np.concatenate((first, np.reshape(data[i], (1, self.lookback*12))))
+
+        return first
 
 
 if __name__ == "__main__":
