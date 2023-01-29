@@ -5,7 +5,7 @@ from enum import Enum
 
 from one_step_prediction_MLP import MLP
 from one_step_prediction_RNN import LSTM
-from data_gen import Data
+from data_process import Data
 
 
 class ModelType(Enum):
@@ -14,7 +14,8 @@ class ModelType(Enum):
 
 
 def get_models(**params):
-    data_processor = Data(params.pop('train_test_split'), params['lookback'], params.pop('file_path'))
+    data_processor = Data(params.pop('train_test_split'), params['lookback'], params.pop('file_path'), max_size=10_000)
+    print("Data has been prepared!")
     MLP_model = MLP(
         data_processor.train_X,
         data_processor.train_Y,
