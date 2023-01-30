@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-
+import datetime
 from enum import Enum
 
 from one_step_prediction_MLP import MLP
@@ -14,8 +14,37 @@ class ModelType(Enum):
 
 
 def get_models(**params):
-    data_processor = Data(params.pop('train_test_split'), params['lookback'], params.pop('file_path'), max_size=10_000)
+    max_size = 10_000
+    data_processor = Data(params.pop('train_test_split'), params['lookback'], params.pop('file_path'), max_size=max_size)
+
+    time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+    f = open(f'logs/log_{time}.txt', 'a')
+    f.write(str(params) + '\n' + f'size dataset: {max_size}')
+    f.close()
+
     print("Data has been prepared!")
+
+    RNN_model = LSTM(
+        data_processor.train_X,
+        data_processor.train_Y,
+
+        data_processor.test_X,
+        data_processor.test_Y,
+
+        params.pop('lstm_units'),
+
+        loss=params['loss'],
+        optimizer=params['optimizer'],
+        regularizer = params['regularizer'],
+        validation_split=params['validation_split'],
+        epochs=params['epochs'],
+        batch_size=params['batch_size'],
+        patience=params['patience'],
+        lookback=params['lookback'],
+
+        plot=params['plot']
+    )
+
     MLP_model = MLP(
         data_processor.train_X,
         data_processor.train_Y,
@@ -36,27 +65,10 @@ def get_models(**params):
         plot=params['plot']
     )
 
-    RNN_model = LSTM(
-        data_processor.train_X,
-        data_processor.train_Y,
+    RNN_model.make_new_predictions(len(data_processor.test_X))
+    MLP_model.make_new_predictions(len(data_processor.test_X))
 
-        data_processor.test_X,
-        data_processor.test_Y,
-
-        params.pop('lstm_units'),
-
-        loss=params['loss'],
-        optimizer=params['optimizer'],
-        validation_split=params['validation_split'],
-        epochs=params['epochs'],
-        batch_size=params['batch_size'],
-        patience=params['patience'],
-        lookback=params['lookback'],
-
-        plot=params['plot']
-    )
-
-    return MLP_model, RNN_model
+    return RNN_model, MLP_model
 
 
 if __name__ == "__main__":
@@ -65,19 +77,22 @@ if __name__ == "__main__":
     # train_test_split% of data will be used for the model, 10 percent will be kept for testing purposes
     params = {
         'train_test_split': 0.9,
-        'layer_sizes': [10, 11, 9, 10, 9],
+        'layer_sizes': [7, 8, 11, 11, 8],
         'lstm_units': 9,
-        'file_path': 'TBP_dataset.csv',
+        'file_path': 'training_data.pkl',
         'loss': 'mean_squared_error',
         'optimizer': 'adam',
+        'regularizer': 'l2',
         'validation_split': 0.2,
         'epochs': 10000,
-        'batch_size': 1,
+        'batch_size': 32,
         'patience': 5,
         'lookback': 5,
         'plot': True,
     }
 
-    mlp, rnn = get_models(**params)
-    mlp.model.summary()
+    rnn, mlp = get_models(**params)
     rnn.model.summary()
+    mlp.model.summary()
+    rnn.model.save(f'models/rnn_{str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))}')
+    mlp.model.save(f'models/mlp_{str(datetime.datetime.now().strftime("%Y-%m-%d_%H_%M_%S"))}')

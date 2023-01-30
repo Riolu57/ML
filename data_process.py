@@ -14,8 +14,8 @@ class Data:
         self.test_X, self.test_Y = self.timeseries_conversion(self.test_data)
 
     def read_data(self):
-        df = pd.read_csv(self.path)
-        data = df[['r1_x', 'r1_y', 'v1_x', 'v1_y', 'r2_x', 'r2_y', 'v2_x', 'v2_y', 'r3_x', 'r3_y', 'v3_x',
+        df = pd.read_pickle(self.path)
+        data = df[['pos1_x', 'pos1_y', 'v1_x', 'v1_y', 'pos2_x', 'pos2_y', 'v2_x', 'v2_y', 'pos3_x', 'pos3_y', 'v3_x',
                    'v3_y']].values.tolist()
         return data
 
@@ -25,7 +25,7 @@ class Data:
         else:
             size = len(self.data)
         train_size = int(size * self.train_perc)
-        train_data, test_data = self.data[0:train_size], self.data[train_size:size]
+        train_data, test_data = self.data[0:train_size], self.data[train_size:(size + 1)]
         return train_data, test_data
 
     def timeseries_conversion(self, arr):

@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import datetime
 
-def plot_loss(history):
+def plot_loss(history, save=False, name='ouput'):
     # list all data in history
     # summarize history for accuracy
     plt.plot(history.history['loss'])
@@ -10,18 +11,50 @@ def plot_loss(history):
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['train', 'val'], loc='upper left')
-    plt.show()
+    if save:
+        time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        plt.savefig(f'loss_figs/{name}_loss_{time}.png')
+        plt.close()
+    else:
+        plt.show()
 
-def plot_predictions(preds, actual, horizon):
-    preds = np.array(preds).reshape((horizon, 12))
-    plt.plot(preds[:, 0], preds[:, 1], '-+', color='blue', label='prediction')
-    plt.plot(actual[:, 0], actual[:, 1], '-o', color='blue', label='actual', alpha=0.5)
+def plot_trajectories(res, actual, horizon, save=False, name='output'):
+    """ Plot the trajectories: predicted and actual of all 3 bodies
+    :param res: predicted results
+    :param actual: actual data
+    :return: show plot
+    """
+    res = np.array(res).reshape((horizon, 12))
+    fig = plt.figure(figsize=(15, 15))
+    ax = fig.add_subplot(111)
 
-    plt.plot(preds[:, 4], preds[:, 5], '-+', color='green', label='prediction')
-    plt.plot(actual[:, 4], actual[:, 5], '-o', color='green', label='actual', alpha=0.5)
+    ax.plot(res[:, 0], res[:, 1], color='C0', alpha=1)
+    ax.plot(res[:, 4], res[:, 5], color='C1', alpha=1)
+    ax.plot(res[:, 8], res[:, 9], color='C2', alpha=1)
 
-    plt.plot(preds[:, 8], preds[:, 9], '-+', color='orange', label='prediction')
-    plt.plot(actual[:, 8], actual[:, 9], '-o', color='orange', label='actual', alpha=0.5)
-    plt.legend()
-    plt.show()
+    ax.plot(actual[:, 0], actual[:, 1], color='C0', alpha=0.2)
+    ax.plot(actual[:, 4], actual[:, 5], color='C1', alpha=0.2)
+    ax.plot(actual[:, 8], actual[:, 9], color='C2', alpha=0.2)
 
+    ax.scatter(res[-1, 0], res[-1, 1], marker="o", s=100,
+               label="Point Mass A", color='C0', alpha=1)
+    ax.scatter(res[-1, 4], res[-1, 5], marker="o", s=100,
+               label="Point Mass B", color='C1', alpha=1)
+    ax.scatter(res[-1][8], res[-1][9], marker="o", s=100,
+               label="Point Mass C", color='C2', alpha=1)
+
+    ax.scatter(actual[-1, 0], actual[-1, 1], marker="o",
+               s=100, color='C0', alpha=0.2)
+    ax.scatter(actual[-1, 4], actual[-1, 5], marker="o",
+               s=100, color='C1', alpha=0.2)
+    ax.scatter(actual[-1, 8], actual[-1, 9], marker="o",
+               s=100, color='C2', alpha=0.2)
+
+    ax.legend()
+
+    if save:
+        time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        fig.savefig(f'pred_figs/{name}_pred_{time}.png')
+        plt.close()
+    else:
+        fig.show()
