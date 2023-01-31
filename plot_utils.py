@@ -18,13 +18,15 @@ def plot_loss(history, save=False, name='ouput'):
     else:
         plt.show()
 
-def plot_trajectories(res, actual, horizon, save=False, name='output'):
+def plot_trajectories(res, actual, horizon, save=False, name='output', regression=False):
     """ Plot the trajectories: predicted and actual of all 3 bodies
     :param res: predicted results
     :param actual: actual data
+    :param regression: if model is regression or not, since the res is already in correct shape for regr
     :return: show plot
     """
-    res = np.array(res).reshape((horizon, 12))
+    if not regression:
+        res = np.array(res).reshape((horizon, 12))
     fig = plt.figure(figsize=(15, 15))
     ax = fig.add_subplot(111)
 
