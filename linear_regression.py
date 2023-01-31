@@ -46,7 +46,8 @@ class LinReg:
 
         self.predictions_y = y_pred
         if self.make_plot:
-            plot_utils.plot_predictions(self.predictions_y, self.test_y[:horizon], horizon, regression=True)
+            plot_utils.plot_trajectories(self.predictions_y, self.test_y[:horizon], 
+                                         horizon, save=True, regression=True)
 
     def load_model(self, filename):
         self.model = pickle.load(open(filename, 'rb'))
