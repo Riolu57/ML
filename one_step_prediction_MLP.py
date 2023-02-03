@@ -6,19 +6,6 @@ import pandas as pd
 import plot_utils
 
 
-class Data:
-    def timeseries_conversion(self, arr):
-        import copy
-        dataX, dataY = [], []
-        for i in range(len(arr) - self.lookback - 1):
-            a = copy.deepcopy(arr[i])
-            for lb in range(1, self.lookback):
-                a += arr[i + lb]
-            dataX.append(a)
-            dataY.append(arr[i + self.lookback])
-        return np.array(dataX), np.array(dataY)
-
-
 class MLP:
     def __init__(self, train_X, train_Y, test_X, test_Y, layer_sizes, loss='mean_squared_error',
                  optimizer='adam', regularizer = 'l2', validation_split=0.2, epochs=10000, batch_size=1,
@@ -32,6 +19,7 @@ class MLP:
         self.patience = patience
         self.lookback = lookback
 
+        self.old_shape = train_X.shape
         self.train_X = self.adjust_data(train_X)
         self.train_Y = train_Y
         self.test_X = self.adjust_data(test_X)
@@ -65,41 +53,23 @@ class MLP:
         return model
 
     def make_new_predictions(self, horizon):
-        input = self.test_X[0]
+        input = self.test_X[0].reshape(1, self.test_X[0].shape[0])
         preds = []
         for _ in range(horizon):
-            pred = self.model.predict(np.reshape(input, (1, 12*self.lookback)))
+            pred = self.model.predict(input)
             preds.append(pred)
-            input = np.concatenate((input[12:], pred[0]))
+            input = np.concatenate((input[:, self.old_shape[2]:].reshape(1, input.shape[0] - self.old_shape[2]), pred),
+                                   axis=1)
 
         if self.plot:
             plot_utils.plot_trajectories(preds, self.test_Y[0:horizon], horizon, True, 'MLP')
 
-    def evaluate_predictions_on_test(self, horizon):
-        preds = []
-        for i in range(horizon):
-            pred = self.model.predict(np.reshape(self.test_X[i], (1, 12*self.lookback)))
-            preds.append(pred)
-
-        if self.plot:
-            plot_utils.plot_predictions(preds, self.test_Y[0:horizon], horizon)
-
     def adjust_data(self, data):
-        first = np.reshape(data[0], (1, self.lookback*12))
+        first = np.reshape(data[0], (1, self.lookback*data[0].shape[1]))
 
         for i in range(1, data.shape[0]):
-            first = np.concatenate((first, np.reshape(data[i], (1, self.lookback*12))))
+            first = np.concatenate((first, np.reshape(data[i], (1, self.lookback*data[i].shape[1]))))
 
         return first
 
 
-if __name__ == "__main__":
-    look = 5
-    print("Prepare data")
-    data = Data(train_perc=0.8, lookback=look)
-    print("Train MLP")
-    mlp = MLP(data.train_X, data.train_Y, data.test_X, data.test_Y, lookback=look)
-    print("New predictions")
-    mlp.make_new_predictions(100)
-    print("Predictions test")
-    mlp.evaluate_predictions_on_test(100)

@@ -5,6 +5,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 import pandas as pd
 import plot_utils
+from data_process import Data
 
 class LSTM:
     def __init__(self, train_X, train_Y, test_X, test_Y, units, loss='mean_squared_error',
@@ -30,8 +31,8 @@ class LSTM:
     def train_model(self, units):
         callback = tf.keras.callbacks.EarlyStopping(monitor='loss', patience=self.patience)
         model = tf.keras.Sequential()
-        model.add(layers.LSTM(units))
-        model.add(layers.Dense(12, kernel_regularizer=self.regularizer))
+        model.add(layers.LSTM(units, kernel_regularizer=self.regularizer))
+        model.add(layers.Dense(12))
         model.compile(loss=self.loss, optimizer=self.optimizer)
         history = model.fit(self.train_X, self.train_Y,
                             validation_split=self.validation_split,
@@ -47,33 +48,36 @@ class LSTM:
 
         return model
 
-    def make_new_predictions(self, horizon):
+    def make_new_predictions(self, horizon, with_memory=True):
         input = self.test_X[0]
         preds = []
-        for _ in range(horizon):
-            pred = self.model.predict(np.reshape(input, (1, self.lookback, 12)))
-            preds.append(pred)
-            input = np.concatenate((input[1:len(input)], pred))
+
+        if with_memory:
+            for _ in range(horizon):
+                pred = self.model.predict(np.reshape(input, (1, self.lookback, self.train_X[0].shape[1])))
+                preds.append(pred)
+                input = np.concatenate((input[1:len(input)], pred))
+
+        else:
+            base = np.zeros((self.lookback - 1, self.train_X.shape[2]))
+            inp = np.concatenate(
+                    (base, input[len(input) - 1:len(input)].reshape((1,self.train_X.shape[2])))).reshape(1,
+                                                                                                       self.lookback,
+                                                                                                       self.train_X.shape[2])
+
+            for _ in range(horizon):
+                pred = self.model.predict(inp)
+                preds.append(pred)
+                inp = np.concatenate((base, pred.reshape((1, self.train_X.shape[2])))).reshape(1, self.lookback, self.train_X.shape[2])
 
         if self.plot:
             plot_utils.plot_trajectories(preds, self.test_Y[0:horizon], horizon, True, 'RNN')
 
-    def evaluate_predictions_on_test(self, horizon):
-        horizon = 100
-        preds = []
-        for i in range(horizon):
-            pred = self.model.predict(np.reshape(self.test_X[i], (1, self.lookback, 12)))
-            preds.append(pred)
-
-        if self.plot:
-            plot_utils.plot_predictions(preds, self.test_Y[0:horizon], horizon)
-
 
 
 if __name__ == "__main__":
-    data = Data(train_perc=0.8, lookback=5)
+    data = Data(train_perc=0.8, lookback=5, max_size=10_000)
     lstm = LSTM(data.train_X, data.train_Y, data.test_X, data.test_Y)
     lstm.make_new_predictions(100)
-    lstm.evaluate_predictions_on_test(100)
 
 

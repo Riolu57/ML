@@ -54,12 +54,12 @@ class LinReg:
 
 if __name__ == "__main__":
     lookback = 5
-    time_prediction = 10000
-    alpha = 0.6
+    alpha = 750
 
-    data = Data(train_perc=0.9, lookback=lookback)
+    data = Data(train_perc=0.9, lookback=lookback, file_path='training_data.pkl', max_size=10_000)
+    time_prediction = len(data.test_X)
 
     lr = LinReg(data.train_X, data.train_Y, data.test_X, data.test_Y, alpha, lookback, True)
     lr.train_model("regr_model.pkl")
-    lr.make_new_predictions(time_prediction)
+    lr.make_new_predictions(time_prediction, data)
     print(f"MSE : {mean_squared_error(lr.test_y[:time_prediction], lr.predictions_y)}")

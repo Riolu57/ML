@@ -7,6 +7,14 @@ from one_step_prediction_MLP import MLP
 from one_step_prediction_RNN import LSTM
 from data_process import Data
 
+import random
+import tensorflow as tf
+
+seed = 69
+random.seed(seed)
+np.random.seed(seed)
+tf.random.set_seed(seed)
+
 
 class ModelType(Enum):
     RNN = 1
@@ -15,11 +23,12 @@ class ModelType(Enum):
 
 def get_models(**params):
     max_size = 10_000
-    data_processor = Data(params.pop('train_test_split'), params['lookback'], params.pop('file_path'), max_size=max_size)
+    data_processor = Data(params.pop('train_test_split'), params['lookback'], params.pop('file_path'),
+                          max_size=max_size, expand=params['expand'])
 
     time = str(datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
     f = open(f'logs/log_{time}.txt', 'a')
-    f.write(str(params) + '\n' + f'size dataset: {max_size}')
+    f.write(str(params) + '\n' + f'size dataset: {max_size}' + '\n' + f'seed: {seed}')
     f.close()
 
     print("Data has been prepared!")
@@ -38,12 +47,15 @@ def get_models(**params):
         regularizer = params['regularizer'],
         validation_split=params['validation_split'],
         epochs=params['epochs'],
-        batch_size=params['batch_size'],
+        batch_size=params['batch_size_rnn'],
         patience=params['patience'],
         lookback=params['lookback'],
 
         plot=params['plot']
     )
+
+    RNN_model.make_new_predictions(len(data_processor.test_X), with_memory=True)
+    RNN_model.make_new_predictions(len(data_processor.test_X), with_memory=False)
 
     MLP_model = MLP(
         data_processor.train_X,
@@ -58,14 +70,13 @@ def get_models(**params):
         optimizer=params['optimizer'],
         validation_split=params['validation_split'],
         epochs=params['epochs'],
-        batch_size=params['batch_size'],
+        batch_size=params['batch_size_mlp'],
         patience=params['patience'],
         lookback=params['lookback'],
 
         plot=params['plot']
     )
 
-    RNN_model.make_new_predictions(len(data_processor.test_X))
     MLP_model.make_new_predictions(len(data_processor.test_X))
 
     return RNN_model, MLP_model
@@ -85,10 +96,12 @@ if __name__ == "__main__":
         'regularizer': 'l2',
         'validation_split': 0.2,
         'epochs': 10000,
-        'batch_size': 32,
+        'batch_size_rnn': 256,
+        'batch_size_mlp': 1,
         'patience': 5,
         'lookback': 5,
         'plot': True,
+        'expand': True
     }
 
     rnn, mlp = get_models(**params)
